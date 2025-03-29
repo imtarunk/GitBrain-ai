@@ -3,9 +3,11 @@
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { json } from "stream/consumers";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { api } from "~/trpc/react";
 
 type FormInput = {
   repoUrl: string;
@@ -15,9 +17,24 @@ type FormInput = {
 
 const CreatePage = () => {
   const { register, handleSubmit, reset } = useForm<FormInput>();
-
+  const createProject = api.project.createProject.useMutation();
   function onSubmit(data: FormInput) {
     window.alert(JSON.stringify(data, null, 2));
+    createProject.mutate(
+      {
+        projectName: data.ProjectName,
+        githubUrl: data.repoUrl,
+        githubToken: data.githubToken,
+      },
+      {
+        onSuccess: (data) => {
+          toast.success(data.message);
+        },
+        onError: (error) => {
+          toast.error("Error creating project");
+        },
+      },
+    );
     return true;
   }
 
@@ -54,7 +71,9 @@ const CreatePage = () => {
               required
             />{" "}
             <div className="h-4"></div>
-            <Button type="submit">Create Project</Button>
+            <Button type="submit" disabled={createProject.isPending}>
+              Create Project
+            </Button>
           </form>
         </div>
       </div>

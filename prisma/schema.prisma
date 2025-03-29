@@ -11,7 +11,7 @@ datasource db {
 }
 
 model user {
-    id        String
+    id        String   @id @unique
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -21,7 +21,8 @@ model user {
 
     email String @unique
 
-    credits Int @default(150)
+    credits       Int             @default(150)
+    UserToProject UserToProject[]
 }
 
 model Projects {
@@ -29,7 +30,20 @@ model Projects {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    name      String
-    githubUrl String
-    deletedAt DateTime?
+    projectName   String
+    githubUrl     String
+    deletedAt     DateTime?
+    UserToProject UserToProject[]
+}
+
+model UserToProject {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    userId    String
+    projectId String
+    User      user     @relation(fields: [userId], references: [id])
+    project   Projects @relation(fields: [projectId], references: [id])
+
+    @@unique([userId, projectId])
 }

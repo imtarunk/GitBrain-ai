@@ -24,6 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
+import useProject from "~/hooks/use-project";
 import { cn } from "~/lib/utils";
 
 const item = [
@@ -34,21 +35,10 @@ const item = [
   { label: "Settings", url: "/settings", icon: Settings },
 ];
 
-const projects = [
-  {
-    name: "Project 1",
-  },
-  {
-    name: "Project 2",
-  },
-  {
-    name: "Project 3",
-  },
-];
-
 export const AppSideBar = () => {
   const pathname = usePathname();
   const { open } = useSidebar();
+  const { projects, projectId, setProjectId } = useProject();
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -91,22 +81,22 @@ export const AppSideBar = () => {
           <SidebarGroupLabel>Your Projects</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {projects.map((project) => {
+              {projects?.map((project) => {
                 return (
-                  <SidebarMenuItem key={project.name}>
+                  <SidebarMenuItem key={project.id}>
                     <SidebarMenuButton asChild>
-                      <div>
+                      <div onClick={() => setProjectId(project.id)}>
                         <div
                           className={cn(
                             "text-primary flex size-6 items-center justify-center rounded-sm border bg-white text-sm",
                             {
-                              "bg-primary text-white": true,
+                              "bg-primary text-white": project.id === projectId,
                             },
                           )}
                         >
-                          {project.name[0]}
+                          {project.projectName[0]}
                         </div>
-                        <span>{project.name}</span>
+                        <span>{project.projectName}</span>
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
