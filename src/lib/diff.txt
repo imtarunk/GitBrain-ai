@@ -1,0 +1,461 @@
+diff --git a/bun.lock b/bun.lock
+index a84483f..4e5080e 100644
+--- a/bun.lock
++++ b/bun.lock
+@@ -58,6 +58,7 @@
+         "superjson": "^2.2.1",
+         "tailwind-merge": "^3.0.2",
+         "tw-animate-css": "^1.2.5",
++        "usehooks-ts": "^3.1.1",
+         "vaul": "^1.1.2",
+         "zod": "^3.24.2",
+       },
+@@ -850,6 +851,8 @@
+ 
+     "lodash": ["lodash@4.17.21", "", {}, "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="],
+ 
++    "lodash.debounce": ["lodash.debounce@4.0.8", "", {}, "sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow=="],
++
+     "lodash.merge": ["lodash.merge@4.6.2", "", {}, "sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ=="],
+ 
+     "loose-envify": ["loose-envify@1.4.0", "", { "dependencies": { "js-tokens": "^3.0.0 || ^4.0.0" }, "bin": { "loose-envify": "cli.js" } }, "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q=="],
+@@ -1102,6 +1105,8 @@
+ 
+     "use-sync-external-store": ["use-sync-external-store@1.4.0", "", { "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-9WXSPC5fMv61vaupRkCKCxsPxBocVnwakBEkMIHHpkTTg6icbJtg6jzgtLDm4bl3cSHAca52rYWih0k4K3PfHw=="],
+ 
++    "usehooks-ts": ["usehooks-ts@3.1.1", "", { "dependencies": { "lodash.debounce": "^4.0.8" }, "peerDependencies": { "react": "^16.8.0  || ^17 || ^18 || ^19 || ^19.0.0-rc" } }, "sha512-I4diPp9Cq6ieSUH2wu+fDAVQO43xwtulo+fKEidHUwZPnYImbtkTjzIJYcDcJqxgmX31GVqNFURodvcgHcW0pA=="],
++
+     "vaul": ["vaul@1.1.2", "", { "dependencies": { "@radix-ui/react-dialog": "^1.1.1" }, "peerDependencies": { "react": "^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc" } }, "sha512-ZFkClGpWyI2WUQjdLJ/BaGuV6AVQiJ3uELGk3OYtP+B6yCO7Cmn9vPFXVJkRaGkOJu3m8bQMgtyzNHixULceQA=="],
+ 
+     "victory-vendor": ["victory-vendor@36.9.2", "", { "dependencies": { "@types/d3-array": "^3.0.3", "@types/d3-ease": "^3.0.0", "@types/d3-interpolate": "^3.0.1", "@types/d3-scale": "^4.0.2", "@types/d3-shape": "^3.1.0", "@types/d3-time": "^3.0.0", "@types/d3-timer": "^3.0.0", "d3-array": "^3.1.6", "d3-ease": "^3.0.1", "d3-interpolate": "^3.0.1", "d3-scale": "^4.0.2", "d3-shape": "^3.1.0", "d3-time": "^3.0.0", "d3-timer": "^3.0.1" } }, "sha512-PnpQQMuxlwYdocC8fIJqVXvkeViHYzotI+NJrCuav0ZYFoq912ZHBk3mCeuj+5/VpodOjPe1z0Fk2ihgzlXqjQ=="],
+diff --git a/package.json b/package.json
+index 3a1bd79..e73f9a6 100644
+--- a/package.json
++++ b/package.json
+@@ -75,6 +75,7 @@
+     "superjson": "^2.2.1",
+     "tailwind-merge": "^3.0.2",
+     "tw-animate-css": "^1.2.5",
++    "usehooks-ts": "^3.1.1",
+     "vaul": "^1.1.2",
+     "zod": "^3.24.2"
+   },
+diff --git a/prisma/migrations/20250329085013_add_priject_realtion/migration.sql b/prisma/migrations/20250329085013_add_priject_realtion/migration.sql
+new file mode 100644
+index 0000000..638c248
+--- /dev/null
++++ b/prisma/migrations/20250329085013_add_priject_realtion/migration.sql
+@@ -0,0 +1,47 @@
++/*
++  Warnings:
++
++  - You are about to drop the `Post` table. If the table is not empty, all the data it contains will be lost.
++  - A unique constraint covering the columns `[id]` on the table `user` will be added. If there are existing duplicate values, this will fail.
++
++*/
++-- AlterTable
++ALTER TABLE "user" ADD CONSTRAINT "user_pkey" PRIMARY KEY ("id");
++
++-- DropTable
++DROP TABLE "Post";
++
++-- CreateTable
++CREATE TABLE "Projects" (
++    "id" TEXT NOT NULL,
++    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
++    "updatedAt" TIMESTAMP(3) NOT NULL,
++    "projectName" TEXT NOT NULL,
++    "githubUrl" TEXT NOT NULL,
++    "deletedAt" TIMESTAMP(3),
++
++    CONSTRAINT "Projects_pkey" PRIMARY KEY ("id")
++);
++
++-- CreateTable
++CREATE TABLE "UserToProject" (
++    "id" TEXT NOT NULL,
++    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
++    "updatedAt" TIMESTAMP(3) NOT NULL,
++    "userId" TEXT NOT NULL,
++    "projectId" TEXT NOT NULL,
++
++    CONSTRAINT "UserToProject_pkey" PRIMARY KEY ("id")
++);
++
++-- CreateIndex
++CREATE UNIQUE INDEX "UserToProject_userId_projectId_key" ON "UserToProject"("userId", "projectId");
++
++-- CreateIndex
++CREATE UNIQUE INDEX "user_id_key" ON "user"("id");
++
++-- AddForeignKey
++ALTER TABLE "UserToProject" ADD CONSTRAINT "UserToProject_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
++
++-- AddForeignKey
++ALTER TABLE "UserToProject" ADD CONSTRAINT "UserToProject_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index 712a59b..1ff4fa0 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -11,7 +11,7 @@ datasource db {
+ }
+ 
+ model user {
+-    id        String
++    id        String   @id @unique
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+ 
+@@ -21,7 +21,8 @@ model user {
+ 
+     email String @unique
+ 
+-    credits Int @default(150)
++    credits       Int             @default(150)
++    UserToProject UserToProject[]
+ }
+ 
+ model Projects {
+@@ -29,7 +30,20 @@ model Projects {
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+ 
+-    name      String
+-    githubUrl String
+-    deletedAt DateTime?
++    projectName   String
++    githubUrl     String
++    deletedAt     DateTime?
++    UserToProject UserToProject[]
++}
++
++model UserToProject {
++    id        String   @id @default(cuid())
++    createdAt DateTime @default(now())
++    updatedAt DateTime @updatedAt
++    userId    String
++    projectId String
++    User      user     @relation(fields: [userId], references: [id])
++    project   Projects @relation(fields: [projectId], references: [id])
++
++    @@unique([userId, projectId])
+ }
+diff --git a/src/app/(protected)/create/page.tsx b/src/app/(protected)/create/page.tsx
+index 9b0c365..2961610 100644
+--- a/src/app/(protected)/create/page.tsx
++++ b/src/app/(protected)/create/page.tsx
+@@ -3,9 +3,11 @@
+ import { auth } from "@clerk/nextjs/server";
+ import Image from "next/image";
+ import { useForm } from "react-hook-form";
++import { toast } from "sonner";
+ import { json } from "stream/consumers";
+ import { Button } from "~/components/ui/button";
+ import { Input } from "~/components/ui/input";
++import { api } from "~/trpc/react";
+ 
+ type FormInput = {
+   repoUrl: string;
+@@ -15,9 +17,24 @@ type FormInput = {
+ 
+ const CreatePage = () => {
+   const { register, handleSubmit, reset } = useForm<FormInput>();
+-
++  const createProject = api.project.createProject.useMutation();
+   function onSubmit(data: FormInput) {
+     window.alert(JSON.stringify(data, null, 2));
++    createProject.mutate(
++      {
++        projectName: data.ProjectName,
++        githubUrl: data.repoUrl,
++        githubToken: data.githubToken,
++      },
++      {
++        onSuccess: (data) => {
++          toast.success(data.message);
++        },
++        onError: (error) => {
++          toast.error("Error creating project");
++        },
++      },
++    );
+     return true;
+   }
+ 
+@@ -54,7 +71,9 @@ const CreatePage = () => {
+               required
+             />{" "}
+             <div className="h-4"></div>
+-            <Button type="submit">Create Project</Button>
++            <Button type="submit" disabled={createProject.isPending}>
++              Create Project
++            </Button>
+           </form>
+         </div>
+       </div>
+diff --git a/src/app/(protected)/dashboard/app-sidebar.tsx b/src/app/(protected)/dashboard/app-sidebar.tsx
+index 1879c8e..ab6d3bc 100644
+--- a/src/app/(protected)/dashboard/app-sidebar.tsx
++++ b/src/app/(protected)/dashboard/app-sidebar.tsx
+@@ -24,6 +24,7 @@ import {
+   SidebarMenuButton,
+   SidebarMenuItem,
+ } from "~/components/ui/sidebar";
++import useProject from "~/hooks/use-project";
+ import { cn } from "~/lib/utils";
+ 
+ const item = [
+@@ -34,21 +35,10 @@ const item = [
+   { label: "Settings", url: "/settings", icon: Settings },
+ ];
+ 
+-const projects = [
+-  {
+-    name: "Project 1",
+-  },
+-  {
+-    name: "Project 2",
+-  },
+-  {
+-    name: "Project 3",
+-  },
+-];
+-
+ export const AppSideBar = () => {
+   const pathname = usePathname();
+   const { open } = useSidebar();
++  const { projects, projectId, setProjectId } = useProject();
+ 
+   return (
+     <Sidebar collapsible="icon" variant="floating">
+@@ -91,22 +81,22 @@ export const AppSideBar = () => {
+           <SidebarGroupLabel>Your Projects</SidebarGroupLabel>
+           <SidebarGroupContent>
+             <SidebarMenu>
+-              {projects.map((project) => {
++              {projects?.map((project) => {
+                 return (
+-                  <SidebarMenuItem key={project.name}>
++                  <SidebarMenuItem key={project.id}>
+                     <SidebarMenuButton asChild>
+-                      <div>
++                      <div onClick={() => setProjectId(project.id)}>
+                         <div
+                           className={cn(
+                             "text-primary flex size-6 items-center justify-center rounded-sm border bg-white text-sm",
+                             {
+-                              "bg-primary text-white": true,
++                              "bg-primary text-white": project.id === projectId,
+                             },
+                           )}
+                         >
+-                          {project.name[0]}
++                          {project.projectName[0]}
+                         </div>
+-                        <span>{project.name}</span>
++                        <span>{project.projectName}</span>
+                       </div>
+                     </SidebarMenuButton>
+                   </SidebarMenuItem>
+diff --git a/src/app/layout.tsx b/src/app/layout.tsx
+index 82fe329..a159397 100644
+--- a/src/app/layout.tsx
++++ b/src/app/layout.tsx
+@@ -1,5 +1,5 @@
+ import "~/styles/globals.css";
+-
++import { Toaster } from "sonner";
+ import { type Metadata } from "next";
+ import { Geist } from "next/font/google";
+ import { ClerkProvider } from "@clerk/nextjs";
+@@ -24,6 +24,7 @@ export default function RootLayout({
+       <html lang="en" className={`${geist.variable}`}>
+         <body>
+           <TRPCReactProvider>{children}</TRPCReactProvider>
++          <Toaster richColors />
+         </body>
+       </html>
+     </ClerkProvider>
+diff --git a/src/hooks/use-project.tsx b/src/hooks/use-project.tsx
+new file mode 100644
+index 0000000..8485578
+--- /dev/null
++++ b/src/hooks/use-project.tsx
+@@ -0,0 +1,24 @@
++import { api } from "~/trpc/react";
++import React from "react";
++import { useLocalStorage } from "usehooks-ts";
++
++const useProject = () => {
++  const {
++    data: projects,
++    isLoading,
++    error,
++  } = api.project.getProjects.useQuery();
++  const [projectId, setProjectId] = useLocalStorage("gitbrain-project", "");
++  const project = projects?.find((project) => project.id === projectId);
++
++  return {
++    projects,
++    project,
++    projectId,
++    setProjectId, // Allow changing projectId
++    isLoading,
++    error,
++  };
++};
++
++export default useProject;
+diff --git a/src/server/api/root.ts b/src/server/api/root.ts
+index b341fc4..1bf8a03 100644
+--- a/src/server/api/root.ts
++++ b/src/server/api/root.ts
+@@ -1,5 +1,5 @@
+-import { postRouter } from "~/server/api/routers/post";
+ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
++import { projectRouter } from "./routers/project";
+ 
+ /**
+  * This is the primary router for your server.
+@@ -7,7 +7,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
+  * All routers added in /api/routers should be manually added here.
+  */
+ export const appRouter = createTRPCRouter({
+-  post: postRouter,
++  project: projectRouter, // Add project router here
+ });
+ 
+ // export type definition of API
+diff --git a/src/server/api/routers/post.ts b/src/server/api/routers/post.ts
+deleted file mode 100644
+index da1c799..0000000
+--- a/src/server/api/routers/post.ts
++++ /dev/null
+@@ -1,31 +0,0 @@
+-import { z } from "zod";
+-
+-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+-
+-export const postRouter = createTRPCRouter({
+-  hello: publicProcedure
+-    .input(z.object({ text: z.string() }))
+-    .query(({ input }) => {
+-      return {
+-        greeting: `Hello ${input.text}`,
+-      };
+-    }),
+-
+-  create: publicProcedure
+-    .input(z.object({ name: z.string().min(1) }))
+-    .mutation(async ({ ctx, input }) => {
+-      return ctx.db.post.create({
+-        data: {
+-          name: input.name,
+-        },
+-      });
+-    }),
+-
+-  getLatest: publicProcedure.query(async ({ ctx }) => {
+-    const post = await ctx.db.post.findFirst({
+-      orderBy: { createdAt: "desc" },
+-    });
+-
+-    return post ?? null;
+-  }),
+-});
+diff --git a/src/server/api/routers/project.ts b/src/server/api/routers/project.ts
+new file mode 100644
+index 0000000..6c4d281
+--- /dev/null
++++ b/src/server/api/routers/project.ts
+@@ -0,0 +1,45 @@
++import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
++import { z } from "zod";
++
++export const projectRouter = createTRPCRouter({
++  createProject: protectedProcedure
++    .input(
++      z.object({
++        projectName: z.string().min(1, "Project name is required"),
++        githubUrl: z.string(),
++        githubToken: z.string().optional(),
++      }),
++    )
++    .mutation(async ({ ctx, input }) => {
++      const project = await ctx.db.projects.create({
++        data: {
++          projectName: input.projectName,
++          githubUrl: input.githubUrl,
++          UserToProject: {
++            create: {
++              userId: ctx.user.userId!,
++            },
++          },
++        },
++      });
++      console.log("Project Created:", input);
++      return {
++        success: true,
++        message: "Project created successfully",
++        project,
++      };
++    }),
++  getProjects: protectedProcedure.query(async ({ ctx }) => {
++    const projects = await ctx.db.projects.findMany({
++      where: {
++        UserToProject: {
++          some: {
++            userId: ctx.user.userId!,
++          },
++        },
++        deletedAt: null, // filter out deleted projects
++      },
++    });
++    return projects;
++  }),
++});
+diff --git a/src/server/api/routers/projects.ts b/src/server/api/routers/projects.ts
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/src/server/api/trpc.ts b/src/server/api/trpc.ts
+index 4e24ba4..f9c5ada 100644
+--- a/src/server/api/trpc.ts
++++ b/src/server/api/trpc.ts
+@@ -6,7 +6,8 @@
+  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
+  * need to use are documented accordingly near the end.
+  */
+-import { initTRPC } from "@trpc/server";
++import { auth } from "@clerk/nextjs/server";
++import { initTRPC, TRPCError } from "@trpc/server";
+ import superjson from "superjson";
+ import { ZodError } from "zod";
+ 
+@@ -79,6 +80,22 @@ export const createTRPCRouter = t.router;
+  * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
+  * network latency that would occur in production but not in local development.
+  */
++const isAuthenticated = t.middleware(async ({ next, ctx }) => {
++  const user = await auth();
++  if (!user) {
++    throw new TRPCError({
++      code: "UNAUTHORIZED",
++      message: " You must be logged in to access this resource",
++    });
++  }
++  return next({
++    ctx: {
++      ...ctx,
++      user,
++    },
++  });
++});
++
+ const timingMiddleware = t.middleware(async ({ next, path }) => {
+   const start = Date.now();
+ 
+@@ -104,3 +121,4 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
+  * are logged in.
+  */
+ export const publicProcedure = t.procedure.use(timingMiddleware);
++export const protectedProcedure = t.procedure.use(isAuthenticated);

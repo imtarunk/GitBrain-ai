@@ -26,18 +26,20 @@ model user {
 }
 
 model Projects {
-    id        String   @id @default(cuid())
+    id        String   @id @unique @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    projectName   String
-    githubUrl     String
+    projectName String
+    githubUrl   String
+
     deletedAt     DateTime?
     UserToProject UserToProject[]
+    Commit        Commit[]
 }
 
 model UserToProject {
-    id        String   @id @default(cuid())
+    id        String   @id @unique @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     userId    String
@@ -46,4 +48,22 @@ model UserToProject {
     project   Projects @relation(fields: [projectId], references: [id])
 
     @@unique([userId, projectId])
+}
+
+model Commit {
+    id        String   @id @unique @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    projectId String
+    project   Projects @relation(fields: [projectId], references: [id])
+
+    commitMessage      String
+    commitHash         String
+    commitDate         DateTime
+    commitAuthorName   String
+    commitAuthorAvatar String
+
+    //Ai generated 
+    summary String
 }

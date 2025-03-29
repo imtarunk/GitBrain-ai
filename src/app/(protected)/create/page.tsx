@@ -1,12 +1,10 @@
 "use client";
 
-import { auth } from "@clerk/nextjs/server";
-import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { json } from "stream/consumers";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import useRefetch from "~/hooks/use-refetch";
 import { api } from "~/trpc/react";
 
 type FormInput = {
@@ -18,6 +16,7 @@ type FormInput = {
 const CreatePage = () => {
   const { register, handleSubmit, reset } = useForm<FormInput>();
   const createProject = api.project.createProject.useMutation();
+  const refetch = useRefetch();
   function onSubmit(data: FormInput) {
     window.alert(JSON.stringify(data, null, 2));
     createProject.mutate(
@@ -29,6 +28,7 @@ const CreatePage = () => {
       {
         onSuccess: (data) => {
           toast.success(data.message);
+          refetch();
         },
         onError: (error) => {
           toast.error("Error creating project");
@@ -66,9 +66,8 @@ const CreatePage = () => {
             />{" "}
             <div className="h-4"></div>
             <Input
-              {...register("githubToken", { required: true })}
+              {...register("githubToken")}
               placeholder="Github Token (Optional)"
-              required
             />{" "}
             <div className="h-4"></div>
             <Button type="submit" disabled={createProject.isPending}>

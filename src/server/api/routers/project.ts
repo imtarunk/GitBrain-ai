@@ -1,3 +1,4 @@
+import { pollCommits } from "~/lib/github";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { z } from "zod";
 
@@ -22,7 +23,8 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
-      console.log("Project Created:", input);
+      console.log(project.id, "This is from project page");
+      await pollCommits(project.id);
       return {
         success: true,
         message: "Project created successfully",
