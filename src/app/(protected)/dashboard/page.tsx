@@ -3,6 +3,7 @@ import { useUser } from "@clerk/nextjs";
 import { ExternalLink, Github } from "lucide-react";
 import useProject from "~/hooks/use-project";
 import Link from "next/link";
+import CommitLog from "./commit-log";
 
 const Dashboard = () => {
   const { user } = useUser();
@@ -43,7 +44,7 @@ const Dashboard = () => {
         </div>
       </div>
       <div className="mt-8"></div>
-      commitLog
+      <CommitLog />
     </div>
   );
 };

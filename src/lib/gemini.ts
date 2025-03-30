@@ -1,7 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 import axios from "axios";
+import { Document } from "@langchain/core/documents";
+import { string } from "zod";
 
 // const diff = await readCommit();
 
@@ -14,6 +18,7 @@ if (!apiKey) {
 }
 
 const ai = new GoogleGenAI({ apiKey });
+const genAI = new GoogleGenerativeAI(apiKey);
 
 // Function to summarize git diff
 export async function summariesCommit(url: string) {
@@ -52,9 +57,40 @@ export async function summariesCommit(url: string) {
     * Adjusted numeric tolerance in test files
     \`\`\`
   
-    Now, **please summarize the following diff file:**\n\n${diff.slice(0, 5000)}
+    Now, **please summarize the following diff file:**\n\n${diff}
     `,
   });
 
   return response.text;
 }
+
+export const summaryCode = async (doc: Document) => {
+  console.log("getting summary for ", doc.metadata.source);
+  const code = await doc.pageContent.slice(0, 10000);
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: ` 
+   * You are an intelligent senior software engineer who specialises in onboarding junior software engineers onto projects.
+    * You are onboarding a junior software engineer and explaining to them the purpose of the $(doc.metadata.source) file.
+    *  Here is the code:
+${code}
+Give a summary no more than 150 words of the code above
+    `,
+  });
+  return response.text;
+};
+
+export async function generateEmbedding(summary: string) {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "models/embedding-001", // Replace with the correct embedding model name if needed
+    });
+    const result = await model.embedContent(summary);
+    return result.embedding.values; // Return the embedding values
+  } catch (error: any) {
+    console.error("Error generating embedding:", error);
+    return null; // Or handle the error as needed
+  }
+}
+
+// console.log(await generateEmbedding("hello world"));

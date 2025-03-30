@@ -74,7 +74,7 @@ export const pollCommits = async (projectId: string) => {
   console.log(summaries);
   const commits = await db.commit.createMany({
     data: summaries.map((summary, index) => {
-      console.log(`Processing commit ${index + 1} This is summary${summary}`);
+      console.log(`Processing commit ${index + 1}`);
       return {
         projectId,
         commitHash: unprocessedCommits[index]!.commitHash,

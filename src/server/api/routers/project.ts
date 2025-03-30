@@ -1,6 +1,7 @@
 import { pollCommits } from "~/lib/github";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { z } from "zod";
+import { indexGitRepo } from "~/lib/github-loader";
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -23,8 +24,10 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
-      console.log(project.id, "This is from project page");
+
+      // console.log(project.id, "This is from project page");
       await pollCommits(project.id);
+      await indexGitRepo(project.id, input.githubUrl, input.githubToken);
       return {
         success: true,
         message: "Project created successfully",
@@ -44,4 +47,18 @@ export const projectRouter = createTRPCRouter({
     });
     return projects;
   }),
+  getCommits: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string().min(1, "Project ID is required"),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      pollCommits(input.projectId).then().catch(console.error);
+      return await ctx.db.commit.findMany({
+        where: {
+          projectId: input.projectId,
+        },
+      });
+    }),
 });
