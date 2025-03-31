@@ -29,31 +29,34 @@ export const indexGitRepo = async (
 ) => {
   const docs = await loadGithubRepo(githubUrl, githubToken);
   const allEmbeddings = await generateEmbeddings(docs);
+  try {
+    await Promise.allSettled(
+      allEmbeddings.map(async (embedding, index) => {
+        console.log(`Processing ${index} of ${allEmbeddings.length}`);
+        if (!embedding.summary) {
+          console.warn("summary not by ai");
+          return;
+        }
+        const sourceCodeEmbedding = await db.sourceCodeEmbedding.create({
+          data: {
+            sourceCode: embedding.sourceCode,
+            projectId: projectId,
+            summary: embedding.summary,
+            fileName: embedding.fileName,
+          },
+        });
+        console.log(sourceCodeEmbedding);
 
-  await Promise.allSettled(
-    allEmbeddings.map(async (embedding, index) => {
-      console.log(`Processing ${index} of ${allEmbeddings.length}`);
-      if (!embedding.summary) {
-        console.warn("summary not by ai");
-        return;
-      }
-      const sourceCodeEmbedding = await db.sourceCodeEmbedding.create({
-        data: {
-          sourceCode: embedding.sourceCode,
-          projectId: projectId,
-          summary: embedding.summary,
-          fileName: embedding.fileName,
-        },
-      });
-      console.log(sourceCodeEmbedding);
-
-      await db.$executeRaw`
+        await db.$executeRaw`
       UPDATE "SourceCodeEmbedding"
       SET "summaryEmbedding" = ${embedding.embedding} :: vector
       WHERE "id" = ${sourceCodeEmbedding.id}
     `;
-    }),
-  );
+      }),
+    );
+  } catch (err) {
+    console.error(err);
+  }
 };
 
 const generateEmbeddings = async (docs: Document[]) => {
@@ -63,11 +66,6 @@ const generateEmbeddings = async (docs: Document[]) => {
       const embedding = await generateEmbeddingAi(summary as string);
       console.log(summary);
       console.log(embedding); //
-
-      if (!summary) {
-        console.log("sumamry not by summarycode");
-        return;
-      }
 
       //  Fixed function call
       return {
