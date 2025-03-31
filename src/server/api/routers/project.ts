@@ -25,9 +25,9 @@ export const projectRouter = createTRPCRouter({
         },
       });
 
-      // console.log(project.id, "This is from project page");
       await pollCommits(project.id);
       await indexGitRepo(project.id, input.githubUrl, input.githubToken);
+
       return {
         success: true,
         message: "Project created successfully",

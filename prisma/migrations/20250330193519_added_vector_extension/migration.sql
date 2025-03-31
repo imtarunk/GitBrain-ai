@@ -13,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS "vector";
 CREATE TABLE "SourceCodeEmbedding" (
     "id" TEXT NOT NULL,
     "sourceCode" TEXT NOT NULL,
-    "summaryEmbedding" vectore(768),
+    "summaryEmbedding" vector(768),
     "summary" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
 

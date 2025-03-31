@@ -1,38 +1,43 @@
-import dotenv from "dotenv";
-dotenv.config();
 import { GoogleGenAI } from "@google/genai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import axios from "axios";
 import { Document } from "@langchain/core/documents";
-import { string } from "zod";
+import { console } from "inspector";
 
 // const diff = await readCommit();
 
 // Load API key
 const apiKey = process.env.GEMINI_API_KEY;
-console.log(apiKey);
+const apiKey2 = process.env.GEMINI_API_KEY2;
+
 if (!apiKey) {
   console.error("API key is missing. Check your .env file.");
   process.exit(1);
 }
 
+if (!apiKey2) {
+  console.error("API key is missing. Check your .env file.");
+  process.exit(1);
+}
+
 const ai = new GoogleGenAI({ apiKey });
-const genAI = new GoogleGenerativeAI(apiKey);
+const genAI = new GoogleGenerativeAI(apiKey2 as string);
 
 // Function to summarize git diff
 export async function summariesCommit(url: string) {
-  const res = await axios.get(url, {
-    headers: {
-      Accept: "application/vnd.github.v3.diff",
-    },
-  });
-  const diff = await res.data; // Read response as text
-  console.log(diff);
+  try {
+    const res = await axios.get(url, {
+      headers: {
+        Accept: "application/vnd.github.v3.diff",
+      },
+    });
+    const diff = await res.data; // Read response as text
+    console.log(diff);
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: `
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: `
     You are an expert programmer, and you are trying to summarize a git diff.
   
     Reminders about the git diff format:
@@ -44,7 +49,7 @@ export async function summariesCommit(url: string) {
     +++ b/lib/index.js
     \`\`\`
     This means that \`lib/index.js\` was modified in this commit.
-    - A line starting with \`+\` means it was **added**.
+    - A line starting with \`+\` means it was **addxjed**.
     - A line starting with \`-\` means it was **deleted**.
     - A line that starts with neither \`+\` nor \`-\` is **context code**.
   
@@ -57,40 +62,51 @@ export async function summariesCommit(url: string) {
     * Adjusted numeric tolerance in test files
     \`\`\`
   
-    Now, **please summarize the following diff file:**\n\n${diff}
+    Now, **please summarize the following diff file:**\n\n${diff.slice(0, 500)}
     `,
-  });
-
-  return response.text;
+    });
+    if (!response || !response.text) {
+      console.error("Failed to generate summary. Response:", response);
+      return "";
+    }
+    return response.text;
+  } catch (err) {
+    return "";
+  }
 }
 
 export const summaryCode = async (doc: Document) => {
+  console.log(doc);
   console.log("getting summary for ", doc.metadata.source);
-  const code = await doc.pageContent.slice(0, 10000);
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: ` 
+  try {
+    const code = doc.pageContent.slice(0, 10000);
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: ` 
    * You are an intelligent senior software engineer who specialises in onboarding junior software engineers onto projects.
     * You are onboarding a junior software engineer and explaining to them the purpose of the $(doc.metadata.source) file.
-    *  Here is the code:
-${code}
-Give a summary no more than 150 words of the code above
+    * Here is the code:${code}
+     Give a summary no more than 100 words of the code above
     `,
-  });
-  return response.text;
+    });
+    console.log(response.text, "This is from summary code ai");
+    return response.text;
+  } catch (err) {
+    console.warn("Error generating summary:", err);
+    return null; // Indicate failure to the caller
+  }
 };
 
-export async function generateEmbedding(summary: string) {
+export async function generateEmbeddingAi(summary: string) {
   try {
     const model = genAI.getGenerativeModel({
       model: "models/embedding-001", // Replace with the correct embedding model name if needed
     });
     const result = await model.embedContent(summary);
+    console.warn(result.embedding.values);
     return result.embedding.values; // Return the embedding values
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating embedding:", error);
     return null; // Or handle the error as needed
   }
 }
-
-// console.log(await generateEmbedding("hello world"));
