@@ -1,112 +1,167 @@
-import { GoogleGenAI } from "@google/genai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
 import axios from "axios";
 import { Document } from "@langchain/core/documents";
-import { console } from "inspector";
-
-// const diff = await readCommit();
 
 // Load API key
 const apiKey = process.env.GEMINI_API_KEY;
 const apiKey2 = process.env.GEMINI_API_KEY2;
 
-if (!apiKey) {
-  console.error("API key is missing. Check your .env file.");
-  process.exit(1);
+if (!apiKey || !apiKey2) {
+  throw new Error("Missing Gemini API keys in environment variables");
 }
 
-if (!apiKey2) {
-  console.error("API key is missing. Check your .env file.");
-  process.exit(1);
+const genAIText = new GoogleGenerativeAI(apiKey);
+const genAIEmbed = new GoogleGenerativeAI(apiKey2);
+
+// Rate limiting configuration
+const MAX_RETRIES = 3;
+const BASE_DELAY = 1000; // 1 second
+const RATE_LIMIT_DELAY = 20000; // 20 seconds
+const MAX_REQUESTS_PER_MINUTE = 15;
+let requestCount = 0;
+let lastRequestTime = Date.now();
+
+// Reset request count every minute
+setInterval(() => {
+  requestCount = 0;
+  lastRequestTime = Date.now();
+}, 60000);
+
+async function waitForRateLimit() {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+
+  // If we've made too many requests, wait until the next minute
+  if (requestCount >= MAX_REQUESTS_PER_MINUTE) {
+    const waitTime = 60000 - timeSinceLastRequest;
+    if (waitTime > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+    requestCount = 0;
+    lastRequestTime = Date.now();
+  }
+
+  // If we're making requests too quickly, add a small delay
+  if (timeSinceLastRequest < 100) {
+    // Minimum 100ms between requests
+    await new Promise((resolve) =>
+      setTimeout(resolve, 100 - timeSinceLastRequest),
+    );
+  }
+
+  requestCount++;
+  lastRequestTime = Date.now();
 }
 
-const ai = new GoogleGenAI({ apiKey });
-const genAI = new GoogleGenerativeAI(apiKey2 as string);
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = MAX_RETRIES,
+): Promise<T> {
+  let lastError: Error | null = null;
 
-// Function to summarize git diff
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await waitForRateLimit();
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Attempt ${attempt} failed:`, error);
+
+      // Check if it's a rate limit error
+      if (error instanceof Error && error.message.includes("429")) {
+        const retryDelay = RATE_LIMIT_DELAY * attempt;
+        console.log(`Rate limit hit, waiting ${retryDelay}ms before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        continue;
+      }
+
+      if (attempt < maxRetries) {
+        const delay = BASE_DELAY * Math.pow(2, attempt - 1); // Exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 export async function summariesCommit(url: string) {
   try {
     const res = await axios.get(url, {
-      headers: {
-        Accept: "application/vnd.github.v3.diff",
-      },
+      headers: { Accept: "application/vnd.github.v3.diff" },
     });
-    const diff = await res.data; // Read response as text
-    console.log(diff);
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: `
-    You are an expert programmer, and you are trying to summarize a git diff.
-  
-    Reminders about the git diff format:
-    - Each file starts with a few metadata lines, like:
-    \`\`\`
-    diff --git a/lib/index.js b/lib/index.js
-    index aadf691..bfef603 100644
-    --- a/lib/index.js
-    +++ b/lib/index.js
-    \`\`\`
-    This means that \`lib/index.js\` was modified in this commit.
-    - A line starting with \`+\` means it was **addxjed**.
-    - A line starting with \`-\` means it was **deleted**.
-    - A line that starts with neither \`+\` nor \`-\` is **context code**.
-  
-    Example Summary Comments:
-    \`\`\`
-    * Increased the returned recordings limit from "10" to "100" [packages/server/recordings_api.ts, packages/server/constants.ts]
-    * Fixed a typo in the GitHub action name [.github/workflows/gpt-commit-summarizer.yml]
-    * Refactored \`octokit\` initialization to a separate file [src/octokit.ts, src/index.ts]
-    * Added OpenAI API for completions [packages/utils/apis/openai.ts]
-    * Adjusted numeric tolerance in test files
-    \`\`\`
-  
-    Now, **please summarize the following diff file:**\n\n${diff.slice(0, 500)}
-    `,
+    const diff = res.data.slice(0, 1500);
+
+    return await withRetry(async () => {
+      const model = genAIText.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `You are an expert programmer summarizing git diffs. Follow these rules:
+      1. Focus on meaningful changes
+      2. Ignore formatting changes
+      3. Group related file modifications
+      4. Use concise bullet points
+      
+      Diff:\n${diff}`;
+
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
     });
-    if (!response || !response.text) {
-      console.error("Failed to generate summary. Response:", response);
-      return "";
-    }
-    return response.text;
   } catch (err) {
-    return "";
+    console.error("Summarization error:", err);
+    return "Failed to generate summary. Please try again.";
   }
 }
 
 export const summaryCode = async (doc: Document) => {
-  console.log(doc);
-  console.log("getting summary for ", doc.metadata.source);
   try {
     const code = doc.pageContent.slice(0, 10000);
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: ` 
-   * You are an intelligent senior software engineer who specialises in onboarding junior software engineers onto projects.
-    * You are onboarding a junior software engineer and explaining to them the purpose of the $(doc.metadata.source) file.
-    * Here is the code:${code}
-     Give a summary no more than 100 words of the code above
-    `,
+
+    return await withRetry(async () => {
+      const model = genAIText.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = `Explain this code from ${doc.metadata.source} to a junior developer:
+      - Purpose
+      - Key functions
+      - Important patterns
+      - 100 words maximum
+      
+      Code:\n${code}`;
+
+      const result = await model.generateContent(prompt);
+      const response = result.response.text().trim();
+
+      if (!response || response.length < 10) {
+        throw new Error("Generated response is too short or empty");
+      }
+
+      return response;
     });
-    console.log(response.text, "This is from summary code ai");
-    return response.text;
   } catch (err) {
-    console.warn("Error generating summary:", err);
-    return null; // Indicate failure to the caller
+    console.error("Code summary error:", err);
+    // Return a more descriptive error message
+    return `Failed to generate code explanation: ${err instanceof Error ? err.message : "Unknown error"}`;
   }
 };
 
-export async function generateEmbeddingAi(summary: string) {
+export async function generateEmbeddingAi(text: string) {
   try {
-    const model = genAI.getGenerativeModel({
-      model: "models/embedding-001", // Replace with the correct embedding model name if needed
+    return await withRetry(async () => {
+      const model = genAIEmbed.getGenerativeModel({
+        model: "models/embedding-001",
+      });
+      const result = await model.embedContent(text);
+
+      if (!result.embedding.values || result.embedding.values.length === 0) {
+        throw new Error("Generated embedding is empty");
+      }
+
+      return result.embedding.values;
     });
-    const result = await model.embedContent(summary);
-    console.warn(result.embedding.values);
-    return result.embedding.values; // Return the embedding values
   } catch (error) {
-    console.error("Error generating embedding:", error);
-    return null; // Or handle the error as needed
+    console.error("Embedding error:", error);
+    throw new Error(
+      `Failed to generate embedding: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }

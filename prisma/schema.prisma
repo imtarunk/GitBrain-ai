@@ -22,6 +22,19 @@ model SourceCodeEmbedding {
     project          Projects                    @relation(fields: [projectId], references: [id])
 }
 
+model Question {
+    id        String   @id @unique @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    question  String
+    answer    String
+    projectId String
+    project   Projects @relation(fields: [projectId], references: [id])
+    userId    String
+    user      user     @relation(fields: [userId], references: [id])
+}
+
 model user {
     id        String   @id @unique
     createdAt DateTime @default(now())
@@ -35,6 +48,7 @@ model user {
 
     credits       Int             @default(150)
     UserToProject UserToProject[]
+    Question      Question[]
 }
 
 model Projects {
@@ -49,6 +63,7 @@ model Projects {
     UserToProject       UserToProject[]
     Commit              Commit[]
     SourceCodeEmbedding SourceCodeEmbedding[]
+    Question            Question[]
 }
 
 model UserToProject {
