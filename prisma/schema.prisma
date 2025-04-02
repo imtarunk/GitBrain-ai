@@ -33,6 +33,7 @@ model Question {
     project   Projects @relation(fields: [projectId], references: [id])
     userId    String
     user      user     @relation(fields: [userId], references: [id])
+    fileRef   Json?
 }
 
 model user {

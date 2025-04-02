@@ -24,6 +24,8 @@ import { useDebounce } from "~/hooks/use-debounce";
 import { useLocalStorage } from "~/hooks/use-local-storage";
 import CodeReference from "./code-ref";
 import gitbrainLogo from "../../../../public/gitbrainLogo.png";
+import { toast } from "sonner";
+import { api } from "~/trpc/react";
 
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
@@ -59,6 +61,7 @@ const AskQuestionCard = () => {
   const [questionHistory, setQuestionHistory] = useLocalStorage<
     QuestionHistory[]
   >("question-history", []);
+  const saveAnswers = api.project.saveAnswers.useMutation();
 
   // Debounce question changes
   const debouncedQuestion = useDebounce(question, 300);
@@ -259,20 +262,50 @@ const AskQuestionCard = () => {
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[80vw]">
           <DialogHeader>
-            <DialogTitle>
-              <Image src={gitbrainLogo} alt="logo" className="h-10 w-10" />
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>
+                <Image src={gitbrainLogo} alt="logo" className="h-10 w-10" />
+              </DialogTitle>
+              <Button
+                disabled={saveAnswers.isPending}
+                variant="outline"
+                onClick={() => {
+                  if (!project?.id) {
+                    toast.error("No project selected");
+                    return;
+                  }
+                  saveAnswers.mutate(
+                    {
+                      question,
+                      answer,
+                      fileReferences: fileReferences,
+                      projectId: project.id,
+                    },
+                    {
+                      onSuccess: () => {
+                        toast.success("Answer saved successfully");
+                      },
+                      onError: (error) => {
+                        console.error("Error saving answer:", error);
+                        toast.error("Failed to save answer");
+                      },
+                    },
+                  );
+                }}
+              >
+                {saveAnswers.isPending ? "Saving..." : "Save answer"}
+              </Button>
+            </div>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Question</h3>
-              <p className="text-muted-foreground text-sm">{question}</p>
-            </div>
             {answer && (
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Answer</h3>
                 <div className="prose prose-sm max-w-none">
-                  <MDEditor.Markdown source={answer} />
+                  <MDEditor.Markdown
+                    source={answer}
+                    className="!h-full max-h-[40vh] max-w-[70vw] overflow-scroll"
+                  />
                 </div>
               </div>
             )}

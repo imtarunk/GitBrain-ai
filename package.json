@@ -69,6 +69,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "embla-carousel-react": "^8.5.2",
+    "framer-motion": "^12.6.3",
     "fs": "^0.0.1-security",
     "ignore": "^7.0.3",
     "input-otp": "^1.4.2",
