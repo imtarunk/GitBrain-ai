@@ -14,7 +14,7 @@ import { resolve } from "path";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBzeegdXocf9Zj6OrqW261iCEdhI0hK-2E",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "gitbrain-5749f.firebaseapp.com",
   projectId: "gitbrain-5749f",
   storageBucket: "gitbrain-5749f.firebasestorage.app",
